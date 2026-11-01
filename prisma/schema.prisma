@@ -40,3 +40,11 @@ model IdempotencyKey {
   responseBody Json
   createdAt    DateTime @default(now())
 }
+
+model BookingAttempt {
+  id        Int      @id @default(autoincrement())
+  email     String
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+}
