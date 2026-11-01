@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireApiKey } from "@/lib/auth";
+import { createHash } from "crypto";
 
 export async function POST(request: Request) {
   const authError = requireApiKey(request);
@@ -10,6 +11,34 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+
+    const idempotencyKey = request.headers.get("Idempotency-Key");
+
+    const requestHash = createHash("sha256")
+      .update(JSON.stringify(body))
+      .digest("hex");
+
+    if (idempotencyKey) {
+      const existing = await prisma.idempotencyKey.findUnique({
+        where: { key: idempotencyKey },
+      });
+
+      if (existing) {
+        if (existing.requestHash !== requestHash) {
+          return Response.json(
+            {
+              error:
+                "Idempotency-Key was already used with a different request body",
+            },
+            { status: 422 },
+          );
+        }
+
+        return Response.json(existing.responseBody, {
+          status: existing.statusCode,
+        });
+      }
+    }
 
     const { slot_id, name, email } = body;
 
@@ -72,17 +101,27 @@ export async function POST(request: Request) {
       });
     });
 
-    return Response.json(
-      {
-        id: booking.id,
-        slot_id: booking.slotId,
-        name: booking.name,
-        email: booking.email,
-        status: booking.status,
-        created_at: booking.createdAt,
-      },
-      { status: 201 },
-    );
+    const responseBody = {
+      id: booking.id,
+      slot_id: booking.slotId,
+      name: booking.name,
+      email: booking.email,
+      status: booking.status,
+      created_at: booking.createdAt,
+    };
+
+    if (idempotencyKey) {
+      await prisma.idempotencyKey.create({
+        data: {
+          key: idempotencyKey,
+          requestHash,
+          statusCode: 201,
+          responseBody,
+        },
+      });
+    }
+
+    return Response.json(responseBody, { status: 201 });
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "SLOT_NOT_FOUND") {

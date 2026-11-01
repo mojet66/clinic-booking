@@ -31,3 +31,12 @@ model Booking {
 
   slot       Slot     @relation(fields: [slotId], references: [id])
 }
+
+model IdempotencyKey {
+  id           Int      @id @default(autoincrement())
+  key          String   @unique
+  requestHash  String
+  statusCode   Int
+  responseBody Json
+  createdAt    DateTime @default(now())
+}
