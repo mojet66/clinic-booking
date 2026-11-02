@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Clinic Appointment Booking API
 
-## Getting Started
+A full-stack clinic appointment booking application built with Next.js, React, TypeScript, PostgreSQL/Neon, and Vercel. The application provides a patient-facing booking interface together with API endpoints for managing appointment slots and bookings.
 
-First, run the development server:
+## Project Overview
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The application was built to support a clinic appointment workflow in which:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Available appointment slots are displayed to patients.
+2. A patient selects an available slot.
+3. The patient provides their full name and email address.
+4. The booking is submitted through the application API.
+5. A booking confirmation and booking reference are returned.
+6. Booked slots stop appearing as available.
+7. Patients can look up their own bookings using the email address used during booking.
+8. Patients can cancel a confirmed booking.
+9. Cancelling a booking makes the associated appointment slot available again.
+10. Protected API endpoints can be tested using an API key.
+11. The application is deployed to Vercel.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Web/API base URL
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+https://clinic-booking-tau-two.vercel.app
 
-## Learn More
+Because the Next.js application serves both the web page and API routes from the same deployment, the assessment's Web Page URL and API Base URL can be the same root URL.
 
-To learn more about Next.js, take a look at the following resources:
+## Technology Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The project uses the following technologies and services based on the development work:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Next.js 16.4.3
+- React 19.3.0
+- React DOM 19.3.0
+- TypeScript
+- PostgreSQL / Neon
+- Prisma
+- Vercel
+- npm
+- Git / GitHub
+- Postman for API testing
+- PowerShell on Windows for local development
 
-## Deploy on Vercel
+## Booking Flow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The patient-facing booking flow works as follows.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Step 1: Load appointments
+
+When the page loads, the frontend requests:
+GET /api/slots
+The returned slots are stored in React state.
+
+### Step 2: Show available appointments
+
+Only available slots are displayed. Each appointment card displays information such as:
+
+- Provider/doctor
+- Start time
+- End time
+- Book button
+
+### Step 3: Select an appointment
+
+The patient clicks: "Book this slot". The selected slot is stored in state.
+
+### Step 4: Enter patient information
+
+The booking form collects:
+
+- Full name
+- Email address
+
+### Step 5: Submit the booking
+
+The frontend sends a request to:
+POST /api/patient-bookings
+with a JSON body similar to:
+{
+"slot_id": 3,
+"name": "John Doe",
+"email": "john@example.com"
+}
+
+### Step 6: Server-side proxy
+
+The patient-facing route forwards the request to the protected booking API. The secret API key stays on the server.
+
+### Step 7: Confirmation
+
+After a successful booking, the frontend displays a confirmation containing the booking reference.
+
+For example:
+Booking confirmed!
+
+Thank you, John Doe.
+Your booking reference is #12.
+
+## Final Project State
+
+Patient
+↓
+Views available appointments
+↓
+Selects appointment
+↓
+Enters name + email
+↓
+Books appointment
+↓
+Receives booking reference
+↓
+Views My Appointments
+↓
+Can cancel appointment
+↓
+Booking becomes cancelled
+↓
+Appointment slot becomes available again
+
+## Final Architecture
+
+The Current archetecture can be represented as:
+
+                         ┌─────────────────────┐
+                         │      Patient        │
+                         │      Browser        │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │    Next.js App      │
+                         │     page.tsx        │
+                         └──────────┬──────────┘
+                                    │
+                  ┌─────────────────┼──────────────────┐
+                  │                 │                  │
+                  ▼                 ▼                  ▼
+             /api/slots      /api/patient-       Other API
+                              bookings             routes
+                                  │
+                                  │ server-side
+                                  │ API key
+                                  ▼
+                         ┌─────────────────────┐
+                         │   /api/bookings     │
+                         │   Protected API     │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │ PostgreSQL / Neon   │
+                         │      Database       │
+                         └─────────────────────┘
