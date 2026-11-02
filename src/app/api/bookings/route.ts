@@ -129,41 +129,42 @@ export async function POST(request: Request) {
       return Response.json({ error: "Invalid email" }, { status: 400 });
     }
 
-    const booking = await prisma.$transaction(async (tx) => {
-      // Lock this slot for the duration of this transaction.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${slot_id})`;
+    const slot = await prisma.slot.findUnique({
+      where: { id: slot_id },
+    });
 
-      const slot = await tx.slot.findUnique({
-        where: { id: slot_id },
-      });
+    if (!slot) {
+      return Response.json({ error: "Slot not found" }, { status: 404 });
+    }
 
-      if (!slot) {
-        throw new Error("SLOT_NOT_FOUND");
-      }
+    if (slot.start <= new Date()) {
+      return Response.json(
+        { error: "Cannot book a slot that has already started" },
+        { status: 400 },
+      );
+    }
 
-      if (slot.start <= new Date()) {
-        throw new Error("SLOT_STARTED");
-      }
+    const existingBooking = await prisma.booking.findFirst({
+      where: {
+        slotId: slot_id,
+        status: "confirmed",
+      },
+    });
 
-      const existingBooking = await tx.booking.findFirst({
-        where: {
-          slotId: slot_id,
-          status: "confirmed",
-        },
-      });
+    if (existingBooking) {
+      return Response.json(
+        { error: "Slot is already booked" },
+        { status: 409 },
+      );
+    }
 
-      if (existingBooking) {
-        throw new Error("SLOT_BOOKED");
-      }
-
-      return tx.booking.create({
-        data: {
-          slotId: slot_id,
-          name: normalizedName,
-          email: normalizedEmail,
-          status: "confirmed",
-        },
-      });
+    const booking = await prisma.booking.create({
+      data: {
+        slotId: slot_id,
+        name: normalizedName,
+        email: normalizedEmail,
+        status: "confirmed",
+      },
     });
 
     const responseBody = {
