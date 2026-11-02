@@ -11,40 +11,39 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate all slots before changing the database
     for (const slot of body.slots) {
       if (
         !Number.isInteger(slot.id) ||
         typeof slot.provider !== "string" ||
-        !slot.provider ||
+        !slot.provider.trim() ||
         typeof slot.start !== "string" ||
-        typeof slot.end !== "string"
+        typeof slot.end !== "string" ||
+        Number.isNaN(Date.parse(slot.start)) ||
+        Number.isNaN(Date.parse(slot.end)) ||
+        new Date(slot.end) <= new Date(slot.start)
       ) {
         return Response.json({ error: "Invalid slot data" }, { status: 400 });
       }
-
-      if (
-        Number.isNaN(new Date(slot.start).getTime()) ||
-        Number.isNaN(new Date(slot.end).getTime())
-      ) {
-        return Response.json({ error: "Invalid slot date" }, { status: 400 });
-      }
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.booking.deleteMany();
-      await tx.slot.deleteMany();
+    // Clear existing bookings first
+    await prisma.booking.deleteMany();
 
-      for (const slot of body.slots) {
-        await tx.slot.create({
-          data: {
-            id: slot.id,
-            provider: slot.provider,
-            start: new Date(slot.start),
-            end: new Date(slot.end),
-          },
-        });
-      }
-    });
+    // Then clear existing slots
+    await prisma.slot.deleteMany();
+
+    // Recreate slots using supplied IDs
+    for (const slot of body.slots) {
+      await prisma.slot.create({
+        data: {
+          id: slot.id,
+          provider: slot.provider.trim(),
+          start: new Date(slot.start),
+          end: new Date(slot.end),
+        },
+      });
+    }
 
     const slots = await prisma.slot.findMany({
       orderBy: {
