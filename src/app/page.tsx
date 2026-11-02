@@ -242,3 +242,12 @@ export default function Home() {
     </main>
   );
 }
+
+// export default function Home() {
+//   return (
+//     <main>
+//       <h1>Clinic Appointment Booking</h1>
+//       <p>Welcome to our clinic.</p>
+//     </main>
+//   );
+// }
