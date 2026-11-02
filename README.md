@@ -97,25 +97,7 @@ Your booking reference is #12.
 
 ## Final Project State
 
-Patient
-↓
-Views available appointments
-↓
-Selects appointment
-↓
-Enters name + email
-↓
-Books appointment
-↓
-Receives booking reference
-↓
-Views My Appointments
-↓
-Can cancel appointment
-↓
-Booking becomes cancelled
-↓
-Appointment slot becomes available again
+Patient –→ Views available appointment –→ Selects appointment –→ Enters name + email –→ Books appointment –→ Receives booking reference –→ Views My Appointment –→ Can cancel appointment –→ Booking becomes cancelled –→ Appointment slot becomes available again
 
 ## Final Architecture
 
